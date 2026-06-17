@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from budget_app.models import AuditLog, BudgetItem, BudgetSheet, ExpenseRecord, Reconciliation, Supplier, UserRole
+from budget_app.models import (
+    ApprovalHistory,
+    AuditLog,
+    BudgetItem,
+    BudgetSheet,
+    ExpenseRecord,
+    Reconciliation,
+    Supplier,
+    UserRole,
+)
 
 
 @admin.register(BudgetSheet)
@@ -18,8 +27,18 @@ class BudgetItemAdmin(admin.ModelAdmin):
 
 @admin.register(ExpenseRecord)
 class ExpenseRecordAdmin(admin.ModelAdmin):
-    list_display = ("id", "budget_item", "amount", "expense_date", "supplier", "status")
+    list_display = ("id", "expense_no", "budget_item", "amount", "expense_date", "supplier", "status", "resubmission_count")
     list_filter = ("status", "payment_method")
+    search_fields = ("expense_no",)
+    readonly_fields = ("expense_no", "resubmission_count")
+
+
+@admin.register(ApprovalHistory)
+class ApprovalHistoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "expense", "action", "actor_id", "previous_status", "new_status", "version", "created_at")
+    list_filter = ("action", "previous_status", "new_status")
+    search_fields = ("expense__expense_no", "actor_id", "comment")
+    readonly_fields = ("version",)
 
 
 @admin.register(Supplier)

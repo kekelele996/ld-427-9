@@ -35,3 +35,11 @@ export enum BudgetCategory {
   Contingency = 'Contingency',
   Other = 'Other',
 }
+
+export enum ApprovalAction {
+  Submit = 'Submit',
+  Approve = 'Approve',
+  Reject = 'Reject',
+  Resubmit = 'Resubmit',
+  Pay = 'Pay',
+}

@@ -1,7 +1,12 @@
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+
+
+def generate_expense_no() -> str:
+    return f"EXP-{uuid.uuid4().hex[:8].upper()}"
 
 
 class TimestampedModel(models.Model):
@@ -134,6 +139,7 @@ class ExpenseStatus(models.TextChoices):
 
 
 class ExpenseRecord(TimestampedModel):
+    expense_no = models.CharField(max_length=32, unique=True, default=generate_expense_no, editable=False)
     budget_item = models.ForeignKey(BudgetItem, on_delete=models.PROTECT, related_name="expenses")
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     expense_date = models.DateField()
@@ -147,12 +153,37 @@ class ExpenseRecord(TimestampedModel):
     approver_id = models.CharField(max_length=64, blank=True, default="")
     approval_comment = models.TextField(blank=True, default="")
     paid_at = models.DateField(null=True, blank=True)
+    resubmission_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["-expense_date", "-id"]
 
     def __str__(self) -> str:
-        return f"{self.budget_item_id}:{self.amount}:{self.status}"
+        return f"{self.expense_no}:{self.amount}:{self.status}"
+
+
+class ApprovalAction(models.TextChoices):
+    SUBMIT = "Submit", "提交"
+    APPROVE = "Approve", "审批通过"
+    REJECT = "Reject", "驳回"
+    RESUBMIT = "Resubmit", "重新提交"
+    PAY = "Pay", "确认付款"
+
+
+class ApprovalHistory(TimestampedModel):
+    expense = models.ForeignKey(ExpenseRecord, on_delete=models.CASCADE, related_name="approval_histories")
+    action = models.CharField(max_length=24, choices=ApprovalAction.choices)
+    actor_id = models.CharField(max_length=64)
+    comment = models.TextField(blank=True, default="")
+    previous_status = models.CharField(max_length=24, choices=ExpenseStatus.choices, blank=True, default="")
+    new_status = models.CharField(max_length=24, choices=ExpenseStatus.choices)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.expense.expense_no}:{self.action}:{self.created_at}"
 
 
 # Reconciliation entity
